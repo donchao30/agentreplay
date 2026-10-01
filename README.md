@@ -3,7 +3,7 @@
 **See exactly what your AI agent did, step by step.**
 Zero dependencies, one Python file, one decorator.
 
-![AgentReplay demo](IMG_0088.jpeg)
+![AgentReplay demo](IMG_0093.jpeg)
 
 ```python
 from agentreplay import step, save, report
