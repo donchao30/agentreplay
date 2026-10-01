@@ -1,4 +1,4 @@
-"""AgentReplay - enregistre chaque étape d'un agent IA et la rejoue dans une page web."""
+"""AgentReplay - record every step of an AI agent and replay it in a web page."""
 import contextvars, functools, json, sys, time
 
 _events = []
@@ -14,7 +14,7 @@ def _safe(x):
 
 
 def step(name=None, **meta):
-    """Décorateur : enregistre entrée, sortie, erreur et durée d'une fonction."""
+    """Decorator: records the input, output, error and duration of a function."""
     def deco(fn):
         label = name or fn.__name__
 
