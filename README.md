@@ -1,6 +1,9 @@
 # AgentReplay
 
 **Vois exactement ce que ton agent IA a fait, étape par étape.**
+
+![Démo AgentReplay](IMG_0087.jpeg)
+
 Zéro dépendance, 1 fichier Python, 1 décorateur.
 
 ```python
