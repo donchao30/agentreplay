@@ -3,6 +3,51 @@ import contextvars, functools, json, sys, time
 
 _events = []
 _depth = contextvars.ContextVar("depth", default=0)
+_current = contextvars.ContextVar("current", default=None)
+_prices = {}
+
+
+def set_price(model, input_per_million, output_per_million):
+    """Set your own prices (USD per 1M tokens) to get a cost per step."""
+    _prices[model] = (input_per_million, output_per_million)
+
+
+def _price(u):
+    p = _prices.get(u.get("model"))
+    if p:
+        u["cost"] = round((u["input_tokens"] * p[0] + u["output_tokens"] * p[1]) / 1e6, 6)
+
+
+def record(input_tokens=0, output_tokens=0, model=None):
+    """Attach token usage to the step currently running."""
+    ev = _current.get()
+    if ev is None:
+        return
+    u = ev.setdefault("usage", {"input_tokens": 0, "output_tokens": 0})
+    u["input_tokens"] += input_tokens
+    u["output_tokens"] += output_tokens
+    if model:
+        u["model"] = model
+    _price(u)
+
+
+def _get(o, *names):
+    for n in names:
+        v = o.get(n) if isinstance(o, dict) else getattr(o, n, None)
+        if v is not None:
+            return v
+
+
+def _extract(out):
+    """Auto-detect usage in OpenAI / Anthropic style responses."""
+    u = _get(out, "usage")
+    if u is None:
+        return
+    i = _get(u, "input_tokens", "prompt_tokens")
+    o = _get(u, "output_tokens", "completion_tokens")
+    if i is None and o is None:
+        return
+    record(i or 0, o or 0, _get(out, "model"))
 
 
 def _safe(x):
@@ -25,8 +70,11 @@ def step(name=None, **meta):
             ev = {"name": label, "depth": d, "meta": meta,
                   "input": _safe({"args": list(a), "kwargs": k}), "t0": time.time()}
             _events.append(ev)
+            ctok = _current.set(ev)
             try:
                 out = fn(*a, **k)
+                if "usage" not in ev:
+                    _extract(out)
                 ev["output"] = _safe(out)
                 return out
             except Exception as e:
@@ -35,6 +83,7 @@ def step(name=None, **meta):
             finally:
                 ev["ms"] = round((time.time() - ev["t0"]) * 1000, 1)
                 _depth.reset(tok)
+                _current.reset(ctok)
         return wrapper
     return deco
 
@@ -57,15 +106,18 @@ h1{font-size:18px}.c{background:#1a1d24;border-radius:8px;padding:10px 12px;marg
 .c.err{border-color:#ff5d5d}.bar{height:4px;background:#4f8cff;border-radius:2px;margin-top:6px}
 pre{white-space:pre-wrap;word-break:break-word;font-size:12px;color:#9aa4b2;margin:4px 0}
 .m{color:#9aa4b2;font-size:12px}
-</style><h1>AgentReplay</h1><div id=app></div>
+</style><h1>AgentReplay</h1><div id=sum class=m></div><div id=app></div>
 <script>
 const ev=__DATA__;
+const U=ev.filter(e=>e.usage);
+const ti=U.reduce((s,e)=>s+e.usage.input_tokens,0),to=U.reduce((s,e)=>s+e.usage.output_tokens,0),tc=U.reduce((s,e)=>s+(e.usage.cost||0),0);
+document.getElementById('sum').textContent=U.length?`${ti} in / ${to} out tokens`+(tc?` · $${tc.toFixed(4)}`:''):'';
 const mx=Math.max(...ev.map(e=>e.ms||0),1);
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const j=x=>esc(typeof x==='string'?x:JSON.stringify(x,null,1));
 document.getElementById('app').innerHTML=ev.map((e,i)=>
  `<div class="c ${e.error?'err':''}" style="margin-left:${e.depth*18}px">
- <b>#${i+1} ${esc(e.name)}</b> <span class=m>${e.ms} ms</span>
+ <b>#${i+1} ${esc(e.name)}</b> <span class=m>${e.ms} ms${e.usage?` · ${e.usage.input_tokens}→${e.usage.output_tokens} tok${e.usage.cost!==undefined?` · $${e.usage.cost}`:''}`:''}</span>
  <pre>in: ${j(e.input)}</pre>
  ${e.error?`<pre style="color:#ff8a8a">error: ${esc(e.error)}</pre>`:`<pre>out: ${j(e.output)}</pre>`}
  <div class=bar style="width:${Math.max(2,(e.ms||0)/mx*100)}%"></div></div>`).join('');
