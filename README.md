@@ -1,10 +1,11 @@
 # AgentReplay
 
-**Vois exactement ce que ton agent IA a fait, étape par étape.**
+# AgentReplay
 
-![Démo AgentReplay](IMG_0088.jpeg)
+**See exactly what your AI agent did, step by step.**
+Zero dependencies, one Python file, one decorator.
 
-Zéro dépendance, 1 fichier Python, 1 décorateur.
+![AgentReplay demo](IMG_0088.jpeg)
 
 ```python
 from agentreplay import step, save, report
@@ -13,20 +14,20 @@ from agentreplay import step, save, report
 def call_llm(prompt): ...
 ```
 
-Lance ton agent, puis `report("run.json", "run.html")` : tu obtiens une page avec
-chaque appel, ses entrées, ses sorties, ses erreurs et sa durée.
+Run your agent, then call `report("run.json", "run.html")`: you get a web page
+with every call, its inputs, outputs, errors and duration.
 
-## Installer
-Copie `agentreplay.py` dans ton projet (Python 3.8+). Essaie `python example.py`.
+## Install
+Copy `agentreplay.py` into your project (Python 3.8+). Try `python example.py`.
 
-## Pourquoi
-Déboguer un agent à coups de `print`, c'est pénible. AgentReplay te montre
-la chaîne complète et où ça casse.
+## Why
+Debugging an agent with `print` is painful. AgentReplay shows you the full
+chain of steps and where it breaks.
 
 ## Roadmap
-- [ ] Coût et tokens par étape
-- [ ] Comparer deux runs
-- [ ] Intégrations OpenAI / Anthropic / LangChain
-- [ ] Version hébergée (équipes)
+- [ ] Cost and token tracking per step
+- [ ] Compare two runs
+- [ ] OpenAI / Anthropic / LangChain integrations
+- [ ] Hosted version for teams
 
 MIT License
